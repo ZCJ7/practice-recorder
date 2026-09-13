@@ -29,7 +29,7 @@ class _SummaryScreenState extends ConsumerState<SummaryScreen> {
         final count = stats?.deleteCount ?? 0;
         return AlertDialog(
           title: const Text('清理废片？'),
-          content: Text('将删除 $count 个待删除视频（文件 + 记录）。此操作不可撤销。'),
+          content: Text('将删除 $count 个待删除视频（应用内文件 + 记录）。废片不会写入相册。此操作不可撤销。'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),

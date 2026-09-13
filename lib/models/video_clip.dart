@@ -9,6 +9,7 @@ class VideoClip {
   final String? note;
   final DateTime createdAt;
   final int versionIndex;
+  final bool inGallery;
 
   const VideoClip({
     required this.id,
@@ -19,6 +20,7 @@ class VideoClip {
     required this.createdAt,
     required this.versionIndex,
     this.note,
+    this.inGallery = false,
   });
 
   VideoClip copyWith({
@@ -30,6 +32,7 @@ class VideoClip {
     String? note,
     DateTime? createdAt,
     int? versionIndex,
+    bool? inGallery,
     bool clearNote = false,
   }) {
     return VideoClip(
@@ -41,6 +44,7 @@ class VideoClip {
       note: clearNote ? null : (note ?? this.note),
       createdAt: createdAt ?? this.createdAt,
       versionIndex: versionIndex ?? this.versionIndex,
+      inGallery: inGallery ?? this.inGallery,
     );
   }
 
@@ -54,6 +58,7 @@ class VideoClip {
       'note': note,
       'created_at': createdAt.millisecondsSinceEpoch,
       'version_index': versionIndex,
+      'in_gallery': inGallery ? 1 : 0,
     };
   }
 
@@ -67,6 +72,7 @@ class VideoClip {
       note: map['note'] as String?,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
       versionIndex: (map['version_index'] as int?) ?? 0,
+      inGallery: ((map['in_gallery'] as int?) ?? 0) == 1,
     );
   }
 }

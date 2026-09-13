@@ -7,6 +7,7 @@ import '../models/video_clip.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
+import 'kept_videos_screen.dart';
 import 'record_screen.dart';
 import 'review_screen.dart';
 import 'summary_screen.dart';
@@ -165,6 +166,18 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen> {
                           );
                         },
                 ),
+                const SizedBox(height: 12),
+                _KeptVideosEntry(
+                  keptCount: view.stats.bestCount + view.stats.keepCount,
+                  onOpen: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            KeptVideosScreen(sessionId: widget.sessionId),
+                      ),
+                    );
+                  },
+                ),
                 const Spacer(),
                 if (active) ...[
                   _RecordButton(onPressed: () => _startRecording(view)),
@@ -190,6 +203,66 @@ class _SessionHomeScreenState extends ConsumerState<SessionHomeScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _KeptVideosEntry extends StatelessWidget {
+  final int keptCount;
+  final VoidCallback onOpen;
+
+  const _KeptVideosEntry({
+    required this.keptCount,
+    required this.onOpen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onOpen,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.line),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.video_library_outlined, color: AppColors.ink),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '保留的视频',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      keptCount == 0 ? '暂无最佳 / 保留' : '共 $keptCount 条，点此回看',
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+            ],
+          ),
+        ),
       ),
     );
   }

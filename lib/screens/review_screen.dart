@@ -136,10 +136,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              AspectRatio(
-                aspectRatio: 9 / 14,
-                child: VideoPreview(path: video.localUri, autoPlay: false),
-              ),
+              VideoPreview(path: video.localUri, autoPlay: false),
               if (canCompare) ...[
                 const SizedBox(height: 20),
                 OutlinedButton.icon(

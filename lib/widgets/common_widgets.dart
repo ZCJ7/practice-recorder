@@ -74,7 +74,7 @@ class _VideoPreviewState extends State<VideoPreview> {
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
-      return _box(
+      return _frame(
         child: Center(
           child: Text(_error!, style: const TextStyle(color: AppColors.muted)),
         ),
@@ -82,61 +82,66 @@ class _VideoPreviewState extends State<VideoPreview> {
     }
     final c = _controller;
     if (c == null || !c.value.isInitialized) {
-      return _box(
+      return _frame(
         child: const Center(child: CircularProgressIndicator()),
       );
     }
-    return _box(
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          AspectRatio(
-            aspectRatio: c.value.aspectRatio == 0 ? 16 / 9 : c.value.aspectRatio,
-            child: VideoPlayer(c),
-          ),
-          Positioned.fill(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  setState(() {
-                    if (c.value.isPlaying) {
-                      c.pause();
-                    } else {
-                      c.play();
-                    }
-                  });
-                },
-                child: Center(
-                  child: AnimatedOpacity(
-                    opacity: c.value.isPlaying ? 0 : 1,
-                    duration: const Duration(milliseconds: 150),
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: const BoxDecoration(
-                        color: Color(0xCC1A1C1E),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.play_arrow_rounded,
-                        color: Colors.white,
-                        size: 36,
+
+    final ar = c.value.aspectRatio == 0 ? 16 / 9 : c.value.aspectRatio;
+
+    return _frame(
+      child: Center(
+        child: AspectRatio(
+          aspectRatio: ar,
+          child: Stack(
+            alignment: Alignment.center,
+            fit: StackFit.expand,
+            children: [
+              VideoPlayer(c),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (c.value.isPlaying) {
+                        c.pause();
+                      } else {
+                        c.play();
+                      }
+                    });
+                  },
+                  child: Center(
+                    child: AnimatedOpacity(
+                      opacity: c.value.isPlaying ? 0 : 1,
+                      duration: const Duration(milliseconds: 150),
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: const BoxDecoration(
+                          color: Color(0xCC1A1C1E),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 36,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _box({required Widget child}) {
+  Widget _frame({required Widget child}) {
     return Container(
       width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 180),
       decoration: BoxDecoration(
         color: AppColors.paperDeep,
         borderRadius: BorderRadius.circular(16),

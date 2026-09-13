@@ -3,12 +3,14 @@ class Session {
   final DateTime startTime;
   final DateTime? endTime;
   final int durationSeconds;
+  final String? folderId;
 
   const Session({
     required this.id,
     required this.startTime,
     this.endTime,
     this.durationSeconds = 0,
+    this.folderId,
   });
 
   bool get isActive => endTime == null;
@@ -18,13 +20,16 @@ class Session {
     DateTime? startTime,
     DateTime? endTime,
     int? durationSeconds,
+    String? folderId,
     bool clearEndTime = false,
+    bool clearFolderId = false,
   }) {
     return Session(
       id: id ?? this.id,
       startTime: startTime ?? this.startTime,
       endTime: clearEndTime ? null : (endTime ?? this.endTime),
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      folderId: clearFolderId ? null : (folderId ?? this.folderId),
     );
   }
 
@@ -34,6 +39,7 @@ class Session {
       'start_time': startTime.millisecondsSinceEpoch,
       'end_time': endTime?.millisecondsSinceEpoch,
       'duration': durationSeconds,
+      'folder_id': folderId,
     };
   }
 
@@ -45,6 +51,7 @@ class Session {
           ? null
           : DateTime.fromMillisecondsSinceEpoch(map['end_time'] as int),
       durationSeconds: (map['duration'] as int?) ?? 0,
+      folderId: map['folder_id'] as String?,
     );
   }
 }
