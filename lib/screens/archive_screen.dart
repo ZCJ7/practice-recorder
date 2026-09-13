@@ -5,11 +5,31 @@ import '../models/archive_folder.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 
-class ArchiveScreen extends ConsumerWidget {
+class ArchiveScreen extends ConsumerStatefulWidget {
   const ArchiveScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ArchiveScreen> createState() => _ArchiveScreenState();
+}
+
+class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
+  bool _busy = false;
+
+  Future<void> _afterOverlay(Future<void> Function() action) async {
+    // Wait until the dialog route is fully gone before touching providers.
+    // Refreshing HomeScreen/ArchiveScreen mid-pop triggers '_dependents.isEmpty'.
+    await Future<void>.delayed(const Duration(milliseconds: 320));
+    if (!mounted || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final async = ref.watch(homeControllerProvider);
 
     return Scaffold(
@@ -24,7 +44,7 @@ class ArchiveScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
               FilledButton.icon(
-                onPressed: () => _create(context, ref),
+                onPressed: _busy ? null : _create,
                 icon: const Icon(Icons.add),
                 label: const Text('新建归档文件夹'),
               ),
@@ -74,11 +94,11 @@ class ArchiveScreen extends ConsumerWidget {
                           ),
                         ),
                         TextButton(
-                          onPressed: () => _rename(context, ref, folder),
+                          onPressed: _busy ? null : () => _rename(folder),
                           child: const Text('重命名'),
                         ),
                         TextButton(
-                          onPressed: () => _delete(context, ref, folder),
+                          onPressed: _busy ? null : () => _delete(folder),
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.danger,
                           ),
@@ -95,84 +115,136 @@ class ArchiveScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _create(BuildContext context, WidgetRef ref) async {
-    final name = await _promptName(context, title: '新建归档', hint: '例如：吉他 / 声乐');
-    if (name == null || name.isEmpty) return;
-    await ref.read(homeControllerProvider.notifier).createArchive(name);
+  Future<void> _create() async {
+    final name = await _ArchiveNameDialog.open(
+      context,
+      title: '新建归档',
+      hint: '例如：吉他 / 声乐',
+    );
+    if (name == null || name.isEmpty || !mounted) return;
+    await _afterOverlay(() {
+      return ref.read(homeControllerProvider.notifier).createArchive(name);
+    });
   }
 
-  Future<void> _rename(
-    BuildContext context,
-    WidgetRef ref,
-    ArchiveFolder folder,
-  ) async {
-    final name = await _promptName(
+  Future<void> _rename(ArchiveFolder folder) async {
+    final name = await _ArchiveNameDialog.open(
       context,
       title: '重命名归档',
       hint: '文件夹名称',
       initial: folder.name,
     );
-    if (name == null || name.isEmpty) return;
-    await ref.read(homeControllerProvider.notifier).renameArchive(folder.id, name);
+    if (name == null || name.isEmpty || !mounted) return;
+    await _afterOverlay(() {
+      return ref.read(homeControllerProvider.notifier).renameArchive(
+            folder.id,
+            name,
+          );
+    });
   }
 
-  Future<void> _delete(
-    BuildContext context,
-    WidgetRef ref,
-    ArchiveFolder folder,
-  ) async {
+  Future<void> _delete(ArchiveFolder folder) async {
     final ok = await showDialog<bool>(
       context: context,
+      useRootNavigator: true,
       builder: (ctx) => AlertDialog(
         title: const Text('删除归档？'),
         content: Text('将删除「${folder.name}」。其中的练习会回到「未归档」，不会删除练习本身。'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('删除'),
           ),
         ],
       ),
     );
-    if (ok != true) return;
-    await ref.read(homeControllerProvider.notifier).deleteArchive(folder.id);
+    if (ok != true || !mounted) return;
+    await _afterOverlay(() {
+      return ref.read(homeControllerProvider.notifier).deleteArchive(folder.id);
+    });
   }
+}
 
-  Future<String?> _promptName(
+class _ArchiveNameDialog extends StatefulWidget {
+  final String title;
+  final String hint;
+  final String? initial;
+
+  const _ArchiveNameDialog({
+    required this.title,
+    required this.hint,
+    this.initial,
+  });
+
+  static Future<String?> open(
     BuildContext context, {
     required String title,
     required String hint,
     String? initial,
-  }) async {
-    final controller = TextEditingController(text: initial ?? '');
-    final result = await showDialog<String>(
+  }) {
+    return showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(hintText: hint),
-          textInputAction: TextInputAction.done,
-          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('确定'),
-          ),
-        ],
+      useRootNavigator: true,
+      builder: (_) => _ArchiveNameDialog(
+        title: title,
+        hint: hint,
+        initial: initial,
       ),
     );
-    controller.dispose();
-    return result;
+  }
+
+  @override
+  State<_ArchiveNameDialog> createState() => _ArchiveNameDialogState();
+}
+
+class _ArchiveNameDialogState extends State<_ArchiveNameDialog> {
+  late final TextEditingController _controller;
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initial ?? '');
+    _focus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    Navigator.of(context).pop(_controller.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        focusNode: _focus,
+        autofocus: true,
+        decoration: InputDecoration(hintText: widget.hint),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('确定'),
+        ),
+      ],
+    );
   }
 }
